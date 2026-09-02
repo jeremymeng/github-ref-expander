@@ -1,0 +1,98 @@
+/* GitHub Ref Expander — popup styles. */
+:root {
+  color-scheme: light dark;
+}
+
+body {
+  width: 300px;
+  margin: 0;
+  padding: 12px 14px 10px;
+  font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+  font-size: 13px;
+  color: #24292f;
+  background: #ffffff;
+}
+
+header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+header h1 {
+  font-size: 14px;
+  margin: 0;
+}
+
+.toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 0;
+  border-top: 1px solid #d0d7de;
+  border-bottom: 1px solid #d0d7de;
+  cursor: pointer;
+}
+
+.toggle-row input[type="checkbox"] {
+  width: 32px;
+  height: 18px;
+}
+
+.explanation {
+  line-height: 1.4;
+  color: #57606a;
+  margin: 10px 0;
+}
+
+.explanation code {
+  background: #f6f8fa;
+  border-radius: 3px;
+  padding: 1px 4px;
+  font-size: 11px;
+}
+
+kbd {
+  border: 1px solid #d0d7de;
+  border-bottom-width: 2px;
+  border-radius: 3px;
+  padding: 0 4px;
+  font-size: 11px;
+  font-family: inherit;
+}
+
+footer {
+  margin-top: 6px;
+  text-align: right;
+}
+
+footer a {
+  color: #0969da;
+  text-decoration: none;
+  font-size: 12px;
+}
+
+footer a:hover {
+  text-decoration: underline;
+}
+
+@media (prefers-color-scheme: dark) {
+  body {
+    background: #0d1117;
+    color: #c9d1d9;
+  }
+  .toggle-row {
+    border-color: #30363d;
+  }
+  .explanation {
+    color: #8b949e;
+  }
+  .explanation code {
+    background: #161b22;
+  }
+  kbd {
+    border-color: #30363d;
+  }
+}

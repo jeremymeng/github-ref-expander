@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>GitHub Ref Expander</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <header>
+    <img src="../icons/icon48.png" alt="" width="24" height="24" />
+    <h1>GitHub Ref Expander</h1>
+  </header>
+
+  <label class="toggle-row">
+    <span>Auto-expand while typing</span>
+    <input type="checkbox" id="auto-expand-toggle" />
+  </label>
+
+  <p class="explanation">
+    Rewrites bare references like <code>#1234</code>, <code>owner/repo#1234</code>,
+    or <code>GH-1234</code> typed into GitHub comment/description boxes into a
+    fully-qualified permalink (<code>[#1234](https://github.com/owner/repo/issues/1234)</code>),
+    so the link keeps working even if the issue is transferred to another repo
+    or the text is copied elsewhere.
+  </p>
+
+  <p class="explanation">
+    When this is off, hover over a detected reference in a textarea to see a
+    small <strong>⚲</strong> button you can click to expand it manually. Press
+    <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>L</kbd>
+    (<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>L</kbd> on macOS) any time to expand
+    every reference in the focused textarea (or just the current selection).
+  </p>
+
+  <footer>
+    <a href="#" target="_blank" rel="noopener" id="readme-link">How it works &amp; testing steps</a>
+  </footer>
+
+  <script src="popup.js"></script>
+</body>
+</html>

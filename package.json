@@ -1,0 +1,14 @@
+{
+  "name": "github-ref-expander",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Browser extension that expands bare GitHub issue/PR references (#1234, owner/repo#1234, GH-1234) typed into github.com comment boxes into fully-qualified permalinks.",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "vitest": "^2.1.9"
+  },
+  "license": "MIT"
+}

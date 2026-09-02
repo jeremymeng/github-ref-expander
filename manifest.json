@@ -1,0 +1,30 @@
+{
+  "manifest_version": 3,
+  "name": "GitHub Ref Expander",
+  "version": "1.0.0",
+  "description": "Expands bare GitHub issue/PR references (#1234, owner/repo#1234, GH-1234) typed in comment boxes into fully-qualified permalinks so they never break if the issue moves repos.",
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "permissions": ["storage"],
+  "host_permissions": ["https://github.com/*"],
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_title": "GitHub Ref Expander",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://github.com/*"],
+      "js": ["src/refExpander.js", "src/content.js"],
+      "css": ["src/content.css"],
+      "run_at": "document_idle"
+    }
+  ]
+}
