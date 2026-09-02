@@ -96,7 +96,11 @@ function encodePng(size) {
   ]);
 }
 
-for (const size of [16, 48, 128]) {
+// 16/48/128 are the manifest-declared sizes (satisfies both Chrome's and
+// Firefox's minimums). 32 and 96 are extras some store/OS surfaces prefer
+// (Chrome's Windows taskbar, Firefox's about:addons list) but are not
+// referenced by manifest.json.
+for (const size of [16, 32, 48, 96, 128]) {
   const png = encodePng(size);
   const file = path.join(outDir, `icon${size}.png`);
   writeFileSync(file, png);

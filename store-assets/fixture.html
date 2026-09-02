@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<!--
+  Static fixture used only by scripts/capture-screenshots.mjs to render
+  promotional screenshots. This is NOT part of the shipped extension — it's
+  a hand-built mockup of a GitHub comment box (colors/typography approximate
+  GitHub's own UI for a recognizable screenshot) that loads the extension's
+  real, unmodified src/refExpander.js to compute the "before"/"after" text,
+  so the screenshots show genuine output, not hand-typed fake results.
+-->
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>GitHub Ref Expander — screenshot fixture</title>
+<style>
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    width: 1280px;
+    height: 800px;
+    font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+    background: #f6f8fa;
+    color: #1f2328;
+  }
+  .browser-bar {
+    height: 44px;
+    background: #24292f;
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    gap: 8px;
+  }
+  .browser-bar .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .browser-bar .dot.red { background: #ff5f56; }
+  .browser-bar .dot.yellow { background: #ffbd2e; }
+  .browser-bar .dot.green { background: #27c93f; }
+  .browser-bar .url {
+    margin-left: 16px;
+    background: #32383f;
+    color: #c9d1d9;
+    border-radius: 6px;
+    padding: 6px 14px;
+    font-size: 13px;
+    font-family: "SFMono-Regular", Consolas, monospace;
+  }
+  .page {
+    max-width: 900px;
+    margin: 36px auto 0;
+  }
+  .issue-title {
+    font-size: 22px;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .issue-meta {
+    color: #59636e;
+    font-size: 14px;
+    margin-bottom: 24px;
+  }
+  .comment-card {
+    border: 1px solid #d1d9e0;
+    border-radius: 8px;
+    background: #ffffff;
+    overflow: hidden;
+    box-shadow: 0 1px 0 rgba(31,35,40,0.04);
+  }
+  .comment-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    background: #f6f8fa;
+    border-bottom: 1px solid #d1d9e0;
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: #6e40c9;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 700;
+  }
+  .toolbar {
+    display: flex;
+    gap: 4px;
+    padding: 8px 12px;
+    border-bottom: 1px solid #d1d9e0;
+    color: #59636e;
+    font-size: 13px;
+  }
+  .toolbar span {
+    width: 28px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+  }
+  textarea {
+    display: block;
+    width: 100%;
+    min-height: 220px;
+    border: 0;
+    padding: 16px;
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+    font-size: 14px;
+    line-height: 1.6;
+    color: #1f2328;
+    resize: none;
+    outline: none;
+  }
+  .card-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 12px 16px;
+    background: #f6f8fa;
+    border-top: 1px solid #d1d9e0;
+  }
+  .btn {
+    border: 1px solid rgba(31,35,40,0.15);
+    border-radius: 6px;
+    padding: 6px 16px;
+    font-size: 14px;
+    font-weight: 500;
+    background: #f6f8fa;
+    color: #1f2328;
+  }
+  .btn.primary {
+    background: #1f883d;
+    border-color: rgba(31,35,40,0.15);
+    color: #fff;
+  }
+  .caption {
+    margin-top: 18px;
+    text-align: center;
+    font-size: 15px;
+    color: #59636e;
+  }
+  .caption strong { color: #1f2328; }
+</style>
+</head>
+<body>
+  <div class="browser-bar">
+    <div class="dot red"></div><div class="dot yellow"></div><div class="dot green"></div>
+    <div class="url">github.com/octo-org/octo-repo/issues/38097</div>
+  </div>
+  <div class="page">
+    <div class="issue-title">Renderer crashes when reference is transferred across repos</div>
+    <div class="issue-meta">octo-org/octo-repo · Issue #38097</div>
+    <div class="comment-card">
+      <div class="comment-header"><span class="avatar">GH</span> Add a comment</div>
+      <div class="toolbar"><span>B</span><span><i>I</i></span><span>❝</span><span>&lt;/&gt;</span><span>🔗</span><span>@</span><span>#</span></div>
+      <textarea id="demo-textarea" spellcheck="false"></textarea>
+      <div class="card-footer">
+        <button class="btn" type="button">Close issue</button>
+        <button class="btn primary" type="button">Comment</button>
+      </div>
+    </div>
+    <p class="caption" id="caption"></p>
+  </div>
+
+  <script src="../src/refExpander.js"></script>
+  <script>
+    var BEFORE_TEXT =
+      'Fixes #1234 after the refactor in this repo.\n\n' +
+      'Also relates to octocat/Spoon-Knife#42 upstream, ported from that repo\u2019s original commit message.';
+
+    var CURRENT_OWNER = 'octo-org';
+    var CURRENT_REPO = 'octo-repo';
+
+    var textarea = document.getElementById('demo-textarea');
+    var caption = document.getElementById('caption');
+
+    // Exposed for the puppeteer capture script to call between screenshots.
+    // Uses the extension's real, unmodified expansion logic (RefExpander is
+    // the same UMD global the content script uses) — nothing here is
+    // hand-authored fake "after" text.
+    window.renderState = function (state) {
+      if (state === 'before') {
+        textarea.value = BEFORE_TEXT;
+        caption.innerHTML = 'Before &mdash; bare <strong>#1234</strong> and <strong>owner/repo#42</strong> references, as typed';
+      } else {
+        var result = RefExpander.expandInRange(BEFORE_TEXT, BEFORE_TEXT.length, CURRENT_OWNER, CURRENT_REPO);
+        textarea.value = result.text;
+        caption.innerHTML = 'After &mdash; auto-expanded to fully-qualified permalinks while keeping the short <strong>#1234</strong> label';
+      }
+    };
+
+    window.renderState('before');
+  </script>
+</body>
+</html>

@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<!--
+  Composite canvas used only by scripts/capture-screenshots.mjs to frame a
+  real screenshot of popup/popup.html (captured separately, at its native
+  size, with a minimal chrome.storage/chrome.runtime shim) inside a
+  1280x800 "browser toolbar" mockup, matching the Chrome Web Store's
+  preferred screenshot dimensions. Not part of the shipped extension.
+-->
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>GitHub Ref Expander — popup screenshot fixture</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    width: 1280px;
+    height: 800px;
+    font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+    background: #eef1f4;
+  }
+  .browser-bar {
+    height: 48px;
+    background: #ffffff;
+    border-bottom: 1px solid #d1d9e0;
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    gap: 14px;
+  }
+  .browser-bar .dot { width: 11px; height: 11px; border-radius: 50%; }
+  .browser-bar .dot.red { background: #ff5f56; }
+  .browser-bar .dot.yellow { background: #ffbd2e; }
+  .browser-bar .dot.green { background: #27c93f; }
+  .browser-bar .url {
+    margin-left: 12px;
+    flex: 1;
+    max-width: 480px;
+    background: #f6f8fa;
+    color: #59636e;
+    border: 1px solid #d1d9e0;
+    border-radius: 16px;
+    padding: 6px 16px;
+    font-size: 13px;
+  }
+  .toolbar-icon {
+    width: 30px;
+    height: 30px;
+    border-radius: 6px;
+    background: #6e40c9;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 13px;
+    position: relative;
+  }
+  .stage {
+    position: relative;
+    padding: 60px 60px 0 0;
+    display: flex;
+    justify-content: flex-end;
+  }
+  .popup-frame {
+    box-shadow: 0 8px 24px rgba(31,35,40,0.22), 0 0 0 1px rgba(31,35,40,0.08);
+    border-radius: 8px;
+    overflow: hidden;
+    background: #fff;
+  }
+  .caption {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 90px;
+    text-align: center;
+    font-size: 16px;
+    color: #59636e;
+  }
+  .caption strong { color: #1f2328; }
+</style>
+</head>
+<body>
+  <div class="browser-bar">
+    <div class="dot red"></div><div class="dot yellow"></div><div class="dot green"></div>
+    <div class="url">github.com</div>
+    <div class="toolbar-icon" title="GitHub Ref Expander">#</div>
+  </div>
+  <div class="stage">
+    <img class="popup-frame" id="popup-shot" alt="GitHub Ref Expander popup" />
+  </div>
+  <p class="caption"><strong>Toolbar popup</strong> &mdash; toggle auto-expand-while-typing on or off</p>
+</body>
+</html>

@@ -72,11 +72,13 @@ setting is stored with `chrome.storage.sync`.
 
 The extension is written to be portable: it uses only `chrome.storage`
 (promise-based in Firefox and Chrome ≥ 88) behind a small `browser`/`chrome`
-shim, and the content script uses no Chrome-only APIs. To load it in Firefox
-for testing, open `about:debugging#/runtime/this-firefox` → **Load Temporary
-Add-on** → select `manifest.json`. For a permanent Firefox install you'd
-additionally add a `browser_specific_settings.gecko.id` key to
-`manifest.json`.
+shim, and the content script uses no Chrome-only APIs. `manifest.json`
+already includes `browser_specific_settings.gecko` (an extension ID,
+minimum Firefox version, and a "no data collection" declaration), so the
+same manifest works unmodified in both browsers — no separate Firefox
+manifest or build step needed. To load it in Firefox for testing, open
+`about:debugging#/runtime/this-firefox` → **Load Temporary Add-on** →
+select `manifest.json`.
 
 ## Manual test steps
 
@@ -111,26 +113,53 @@ additionally add a `browser_specific_settings.gecko.id` key to
 ## Project layout
 
 ```
-manifest.json         MV3 manifest (permissions: storage + https://github.com/*)
+manifest.json         MV3 manifest (permissions: storage + https://github.com/*;
+                       includes browser_specific_settings.gecko for Firefox/AMO)
 src/refExpander.js     Pure text-rewriting logic (regex matching, exclusion
                         ranges for code/links, expansion + cursor-offset math)
 src/content.js         DOM wiring: textarea discovery, MutationObserver,
                         auto-expand, paste handling, keyboard shortcut, hover chip
 src/content.css        Styles for the hover chip/underline
 popup/                 Toolbar popup (toggle + explanation)
-icons/                 Toolbar icons (16/48/128)
+icons/                 Toolbar icons (16/32/48/96/128)
 test/refExpander.test.js  vitest unit tests for the pure logic module
 test/content.dom.test.js vitest + jsdom integration tests for textarea
                         discovery and GitHub's autocomplete-commit event
-scripts/generate-icons.mjs Dev-only helper that generated icons/*.png
+scripts/generate-icons.mjs   Dev-only helper that generated icons/*.png
+scripts/package.mjs          Builds dist/ zips + an unpacked mirror for store submission
+scripts/capture-screenshots.mjs  Generates store-assets/screenshots/ with Puppeteer
+scripts/lib/zip.mjs           Minimal dependency-free ZIP writer used by package.mjs
+store-assets/           Listing copy, privacy policy, screenshots, and a
+                        submission checklist for the Chrome Web Store / AMO
 ```
+
+## Packaging & store submission
+
+```bash
+npm run package      # writes dist/github-ref-expander-{chrome,firefox}-vX.Y.Z.zip
+                      # + dist/unpacked/ (same files, as a plain directory)
+npm run lint:firefox  # rebuilds, then runs Mozilla's web-ext lint against it
+npm run screenshots   # regenerates store-assets/screenshots/*.png
+```
+
+Both zips have identical contents (only the filename differs) — the
+extension has no background service worker and only uses the MV3
+`content_scripts`/`action`/`permissions` shapes both Chrome and Firefox
+share, so no manifest split was needed. See `store-assets/LISTING.md`,
+`store-assets/PRIVACY_POLICY.md`, and `store-assets/SUBMISSION_CHECKLIST.md`
+for the copy and manual dashboard steps needed to actually publish.
 
 ## Development
 
 No build step is needed to load/review the extension — every file it ships
 is plain JS/HTML/CSS. Dev dependencies are [vitest](https://vitest.dev/) (unit
-+ DOM-integration tests) and [jsdom](https://github.com/jsdom/jsdom) (only
-used to run `test/content.dom.test.js` outside a real browser):
++ DOM-integration tests), [jsdom](https://github.com/jsdom/jsdom) (only used
+to run `test/content.dom.test.js` outside a real browser),
+[web-ext](https://github.com/mozilla/web-ext) (Mozilla's official AMO-policy
+linter, used by `npm run lint:firefox`), and
+[puppeteer](https://pptr.dev/) (only used by `npm run screenshots` to
+generate store listing images — not needed to run or test the extension
+itself):
 
 ```bash
 npm install

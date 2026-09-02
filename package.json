@@ -5,11 +5,16 @@
   "description": "Browser extension that expands bare GitHub issue/PR references (#1234, owner/repo#1234, GH-1234) typed into github.com comment boxes into fully-qualified permalinks.",
   "scripts": {
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "package": "node scripts/package.mjs",
+    "lint:firefox": "npm run package && web-ext lint --source-dir dist/unpacked",
+    "screenshots": "node scripts/capture-screenshots.mjs"
   },
   "devDependencies": {
     "jsdom": "^30.0.1",
-    "vitest": "^2.1.9"
+    "puppeteer": "^25.9.0",
+    "vitest": "^2.1.9",
+    "web-ext": "^10.6.0"
   },
   "license": "MIT"
 }
