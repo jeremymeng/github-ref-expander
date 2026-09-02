@@ -22,10 +22,75 @@
   const api = typeof browser !== 'undefined' ? browser : chrome;
   const STORAGE_KEY = 'autoExpandEnabled';
 
+  // Plain numeric nodeType constants instead of Node.ELEMENT_NODE/DOCUMENT_NODE
+  // — functionally identical (they're fixed per the DOM spec), but avoids any
+  // dependency on the `Node` global specifically being in scope.
+  const ELEMENT_NODE = 1;
+  const DOCUMENT_NODE = 9;
+
   // Generic enough to catch issue/PR bodies, PR/issue/review comments, and
   // discussion posts, plus anything added later by GitHub's own JS.
-  const TEXTAREA_SELECTOR =
-    "textarea[name*='[body]'], #new_comment_field, textarea[id*='comment'], textarea[name*='comment']";
+  //
+  // GitHub has migrated several of these fields to React over time, and the
+  // React versions often drop the classic `name`/`id` conventions (they use
+  // `aria-labelledby`/CSS-module class names instead). The selectors below
+  // were verified against github.com's live markup (cross-checked against
+  // github/text-expander-element and refined-github/refined-github, both of
+  // which have to track these exact same fields):
+  //   - textarea[name*='[body]']              new issue/PR creation forms
+  //   - #new_comment_field                    legacy PR "Add a comment"
+  //   - textarea[id*='comment'/'name*=comment'] legacy/id-based comment forms
+  //     (also matches PR review inline-comment fields, whose id starts with
+  //     "new_inline_comment_discussion...")
+  //   - textarea.js-comment-field             legacy secondary forms (gists,
+  //                                            discussions)
+  //   - textarea[aria-labelledby="comment-composer-heading"]
+  //                                            React "Add a comment" on issues
+  //   - [class*="MarkdownInput-module__textArea"] textarea
+  //                                            React "Edit" composer for an
+  //                                            existing issue/PR body/comment
+  //   - div[class*="AddCommentEditor"] textarea
+  //                                            PR review comment, Files tab
+  //
+  // Even with all of the above, GitHub can and does rename things again — see
+  // the `markdown-toolbar[for]` resolution below for a selector-independent
+  // fallback that keeps working through future markup changes.
+  const TEXTAREA_SELECTOR = [
+    "textarea[name*='[body]']",
+    '#new_comment_field',
+    "textarea[id*='comment']",
+    "textarea[name*='comment']",
+    'textarea.js-comment-field',
+    'textarea[aria-labelledby="comment-composer-heading"]',
+    '[class*="MarkdownInput-module__textArea"] textarea',
+    'div[class*="AddCommentEditor"] textarea',
+  ].join(', ');
+
+  // GitHub wraps essentially every markdown textarea with its own open-source
+  // <markdown-toolbar for="textarea-id"> web component (the bold/italic/link
+  // buttons above the box) — see github/markdown-toolbar-element. The `for`
+  // attribute always references the textarea's id, regardless of what other
+  // classes/attributes that textarea does or doesn't have, so resolving it
+  // catches markdown fields even if GitHub renames the attributes the
+  // selector list above depends on.
+  function resolveToolbarTextareas(root) {
+    if (!root) return [];
+    const toolbars = [];
+    // A MutationObserver fires per added node, and that node can *be* the
+    // <markdown-toolbar> element itself (not just an ancestor wrapping it),
+    // so it must be checked directly in addition to searching descendants —
+    // same reasoning as the `root.matches(TEXTAREA_SELECTOR)` check above.
+    if (root.matches && root.matches('markdown-toolbar[for]')) toolbars.push(root);
+    if (root.querySelectorAll) toolbars.push(...root.querySelectorAll('markdown-toolbar[for]'));
+
+    const result = [];
+    toolbars.forEach((toolbar) => {
+      const id = toolbar.getAttribute('for');
+      const textarea = id && document.getElementById(id);
+      if (textarea instanceof HTMLTextAreaElement) result.push(textarea);
+    });
+    return result;
+  }
 
   // Reserved top-level GitHub paths that are never `owner/repo`, so we don't
   // misdetect a repo context on non-repo pages.
@@ -86,9 +151,19 @@
     textarea.dispatchEvent(new Event('input', { bubbles: true }));
   }
 
-  function handleInput(event) {
-    if (!event.isTrusted) return; // ignore our own synthetic event from setTextareaValue
-    const textarea = event.target;
+  /**
+   * Shared entry point for "something changed in this textarea, maybe expand
+   * refs now": used for normal typing/paste (via the 'input' event) and for
+   * GitHub's own `#`/`@` autocomplete commit (see the `text-expander-committed`
+   * listener below), which changes the value without firing an `input` event
+   * at all.
+   *
+   * `fullScan: true` expands every bare ref currently in the textarea (safe
+   * to run repeatedly since already-expanded/excluded text is protected by
+   * the exclusion-range logic); `fullScan: false` only expands a ref that was
+   * just completed at the cursor by a single typed boundary character.
+   */
+  function processTextarea(textarea, fullScan) {
     if (!autoExpandEnabled) {
       scheduleHoverRefresh(textarea);
       return;
@@ -96,13 +171,36 @@
     const repo = getCurrentRepo();
     if (!repo) return;
 
-    const isPasteOrDrop = event.inputType === 'insertFromPaste' || event.inputType === 'insertFromDrop';
-    const result = isPasteOrDrop
+    const result = fullScan
       ? RefExpander.expandInRange(textarea.value, textarea.selectionStart, repo.owner, repo.repo)
       : RefExpander.expandOnBoundary(textarea.value, textarea.selectionStart, repo.owner, repo.repo);
 
     if (result.changed) setTextareaValue(textarea, result.text, result.cursor);
   }
+
+  function handleInput(event) {
+    if (!event.isTrusted) return; // ignore our own synthetic event from setTextareaValue
+    const isPasteOrDrop = event.inputType === 'insertFromPaste' || event.inputType === 'insertFromDrop';
+    processTextarea(event.target, isPasteOrDrop);
+  }
+
+  // GitHub's `#`/`@`/`:` autocomplete dropdown (github/text-expander-element)
+  // commits a suggestion by assigning `textarea.value` directly and firing a
+  // *non-bubbling* `text-expander-committed` custom event on the wrapping
+  // <text-expander> element — never a plain `input` event. A capturing
+  // listener on `document` still sees it (the capture phase reaches every
+  // ancestor of the target, including document, regardless of `bubbles`), so
+  // this is the only way to catch e.g. picking "#1234" from that dropdown.
+  document.addEventListener(
+    'text-expander-committed',
+    (event) => {
+      const textarea = event.detail && event.detail.input;
+      if (!(textarea instanceof HTMLTextAreaElement)) return;
+      attachToTextarea(textarea); // self-heal: this event proves it's a real GitHub markdown field
+      processTextarea(textarea, true);
+    },
+    true
+  );
 
   function isExpandShortcut(event) {
     const isLKey = event.key === 'l' || event.key === 'L' || event.code === 'KeyL';
@@ -146,11 +244,12 @@
 
   function scanForTextareas(root) {
     if (!root) return;
-    if (root.nodeType !== Node.ELEMENT_NODE && root.nodeType !== Node.DOCUMENT_NODE) return;
+    if (root.nodeType !== ELEMENT_NODE && root.nodeType !== DOCUMENT_NODE) return;
     if (root.matches && root.matches(TEXTAREA_SELECTOR)) attachToTextarea(root);
     if (root.querySelectorAll) {
       root.querySelectorAll(TEXTAREA_SELECTOR).forEach(attachToTextarea);
     }
+    resolveToolbarTextareas(root).forEach(attachToTextarea);
   }
 
   scanForTextareas(document);
@@ -162,7 +261,7 @@
     for (const mutation of mutations) {
       mutation.addedNodes.forEach((node) => scanForTextareas(node));
       mutation.removedNodes.forEach((node) => {
-        if (node.nodeType !== Node.ELEMENT_NODE) return;
+        if (node.nodeType !== ELEMENT_NODE) return;
         if (node.matches && node.matches(TEXTAREA_SELECTOR)) clearHoverChips(node);
         if (node.querySelectorAll) node.querySelectorAll(TEXTAREA_SELECTOR).forEach(clearHoverChips);
       });
@@ -206,6 +305,7 @@
 
   function refreshAllHoverAffordances() {
     document.querySelectorAll(TEXTAREA_SELECTOR).forEach((textarea) => scheduleHoverRefresh(textarea));
+    resolveToolbarTextareas(document).forEach((textarea) => scheduleHoverRefresh(textarea));
   }
 
   // CSS properties that affect text layout/metrics, copied onto the mirror div

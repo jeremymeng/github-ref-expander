@@ -103,6 +103,10 @@ additionally add a `browser_specific_settings.gecko.id` key to
     (no full page reload, since GitHub is a single-page app) — the extension
     should keep working on the new page's comment box without needing a
     manual refresh.
+11. Type `#` in the comment box and pick an issue/PR from GitHub's own
+    autocomplete dropdown — the inserted `#1234` should expand too (this
+    doesn't go through a normal "typing" event, so it's handled separately;
+    see `src/content.js`'s `text-expander-committed` listener).
 
 ## Project layout
 
@@ -115,20 +119,36 @@ src/content.js         DOM wiring: textarea discovery, MutationObserver,
 src/content.css        Styles for the hover chip/underline
 popup/                 Toolbar popup (toggle + explanation)
 icons/                 Toolbar icons (16/48/128)
-test/refExpander.test.js   vitest unit tests for the pure logic module
+test/refExpander.test.js  vitest unit tests for the pure logic module
+test/content.dom.test.js vitest + jsdom integration tests for textarea
+                        discovery and GitHub's autocomplete-commit event
 scripts/generate-icons.mjs Dev-only helper that generated icons/*.png
 ```
 
 ## Development
 
 No build step is needed to load/review the extension — every file it ships
-is plain JS/HTML/CSS. The only dev dependency is [vitest](https://vitest.dev/)
-for the unit tests:
+is plain JS/HTML/CSS. Dev dependencies are [vitest](https://vitest.dev/) (unit
++ DOM-integration tests) and [jsdom](https://github.com/jsdom/jsdom) (only
+used to run `test/content.dom.test.js` outside a real browser):
 
 ```bash
 npm install
 npm test
 ```
+
+### A note on textarea discovery
+
+GitHub has migrated several comment/description fields to React over time,
+and the React versions often drop the classic `name`/`id` conventions the
+original selectors relied on (they use `aria-labelledby` or CSS-module class
+names instead), and its `#`/`@`/`:` autocomplete dropdown commits a choice by
+writing `textarea.value` directly rather than firing a normal `input` event.
+`src/content.js`'s selector list and its `text-expander-committed` listener
+account for both of these; if GitHub changes its markup again, the
+`markdown-toolbar[for]` fallback (GitHub's own attribute linking its toolbar
+to a textarea) is a second, more durable line of defense — see the comments
+above `TEXTAREA_SELECTOR` in `src/content.js` for details.
 
 ## License
 
