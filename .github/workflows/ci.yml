@@ -1,0 +1,117 @@
+name: CI
+
+# Runs the test/lint validation on every pull request and every push to
+# master. A push of a version tag (v1.2.3-style) additionally runs the
+# same validation, then packages and releases the extension — see the
+# `release` job below and README.md's "Release procedure" section.
+on:
+  pull_request:
+  push:
+    branches: [master]
+    tags: ['v*.*.*']
+
+# Least-privilege default: read-only. Only the release job elevates to
+# contents: write, and only for the steps that need it (creating a
+# release + uploading assets).
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Test & lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run test suite
+        run: npm test
+
+      - name: Lint Firefox package (web-ext)
+        run: npm run lint:firefox
+
+  release:
+    name: Package & release
+    # Only for tag pushes (refs/tags/...). Pull requests and pushes to
+    # master stop after the `test` job above. The `on.push.tags` filter
+    # above is a broad glob (v*.*.* would also match something like
+    # "v1.x.3"), so this job additionally does a strict semver check
+    # below before it will actually create a release.
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: npm
+
+      - name: Validate tag is a strict semantic version matching package/manifest
+        id: validate
+        run: |
+          set -euo pipefail
+          TAG="$GITHUB_REF_NAME"
+
+          if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Tag '$TAG' is not a strict semantic version. Expected exactly vX.Y.Z (e.g. v1.2.3) with no extra characters, suffixes, or prereleases."
+            exit 1
+          fi
+
+          TAG_VERSION="${TAG#v}"
+          PKG_VERSION="$(node -p "require('./package.json').version")"
+          MANIFEST_VERSION="$(node -p "require('./manifest.json').version")"
+
+          if [[ "$PKG_VERSION" != "$MANIFEST_VERSION" ]]; then
+            echo "::error::package.json version ($PKG_VERSION) does not match manifest.json version ($MANIFEST_VERSION). Fix both before tagging a release."
+            exit 1
+          fi
+
+          if [[ "$TAG_VERSION" != "$PKG_VERSION" ]]; then
+            echo "::error::Tag $TAG does not match the package/manifest version ($PKG_VERSION). The tag must be exactly v$PKG_VERSION."
+            exit 1
+          fi
+
+          echo "Tag $TAG matches package.json/manifest.json version $PKG_VERSION."
+          echo "version=$PKG_VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build extension packages
+        run: npm run package
+
+      - name: Verify built zip filenames
+        env:
+          VERSION: ${{ steps.validate.outputs.version }}
+        run: |
+          set -euo pipefail
+          ls -la dist
+          test -f "dist/github-ref-expander-chrome-v${VERSION}.zip"
+          test -f "dist/github-ref-expander-firefox-v${VERSION}.zip"
+
+      - name: Create GitHub Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.validate.outputs.version }}
+        run: |
+          set -euo pipefail
+          gh release create "$GITHUB_REF_NAME" \
+            "dist/github-ref-expander-chrome-v${VERSION}.zip" \
+            "dist/github-ref-expander-firefox-v${VERSION}.zip" \
+            --title "GitHub Ref Expander $GITHUB_REF_NAME" \
+            --notes "Automated release for $GITHUB_REF_NAME. See the commit history for details."

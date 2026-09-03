@@ -131,6 +131,8 @@ scripts/capture-screenshots.mjs  Generates store-assets/screenshots/ with Puppet
 scripts/lib/zip.mjs           Minimal dependency-free ZIP writer used by package.mjs
 store-assets/           Listing copy, privacy policy, screenshots, and a
                         submission checklist for the Chrome Web Store / AMO
+.github/workflows/ci.yml  CI (test + lint) on every PR/push, and an
+                        automated GitHub Release on version tags
 ```
 
 ## Packaging & store submission
@@ -148,6 +150,56 @@ extension has no background service worker and only uses the MV3
 share, so no manifest split was needed. See `store-assets/LISTING.md`,
 `store-assets/PRIVACY_POLICY.md`, and `store-assets/SUBMISSION_CHECKLIST.md`
 for the copy and manual dashboard steps needed to actually publish.
+
+## Continuous integration & releases
+
+`.github/workflows/ci.yml` defines two jobs:
+
+- **`test`** — runs on every pull request, and on every push to `master`
+  (including tag pushes, since those are pushes too): `npm ci`, then
+  `npm test` (the vitest suite) and `npm run lint:firefox` (Mozilla's
+  `web-ext lint`, which also exercises `npm run package`). Uses the
+  current Node LTS (`lts/*`) with `actions/setup-node`'s built-in npm
+  cache.
+- **`release`** — only runs for pushes of tags shaped like `v*.*.*`, and
+  only after `test` has passed (`needs: test`). Before packaging or
+  releasing anything, it re-derives the version from both
+  `package.json` and `manifest.json` and checks:
+  1. the tag is an **exact** `vX.Y.Z` (digits only, no `v1.x.3`, no
+     `-beta` suffixes, no extra segments) — the broad `v*.*.*` trigger
+     glob alone can't guarantee this, so the job re-validates with a
+     strict regex before doing anything else;
+  2. `package.json` and `manifest.json` report the *same* version as
+     each other;
+  3. the tag equals that version exactly (`v1.2.3` tag ⇒ version must be
+     `1.2.3`).
+
+  Any mismatch fails the job with a clear `::error::` message and no
+  release is created. Once all three checks pass, it runs
+  `npm run package` and creates a GitHub Release for the tag (via
+  `gh release create`, using the workflow's own `GITHUB_TOKEN`),
+  uploading exactly the two generated zips
+  (`github-ref-expander-chrome-vX.Y.Z.zip` and
+  `github-ref-expander-firefox-vX.Y.Z.zip`) as release assets — nothing
+  else. `contents: write` is granted only to this job (via job-level
+  `permissions:`); every other job/step stays read-only.
+
+### Release procedure
+
+1. Bump the version **in both** `package.json` and `manifest.json` to the
+   same new value (e.g. `1.1.0`) and commit that change.
+2. Push the commit to `master`.
+3. Tag that commit `vX.Y.Z` — matching the version from step 1 exactly —
+   and push the tag:
+   ```bash
+   git tag v1.1.0
+   git push origin v1.1.0
+   ```
+4. GitHub Actions picks up the tag push, re-runs the full test/lint
+   validation, verifies the tag matches the committed version, packages
+   the extension, and publishes a GitHub Release with both store zips
+   attached. If the tag doesn't match, or isn't a strict `vX.Y.Z`, the
+   workflow fails loudly instead of publishing anything.
 
 ## Development
 
