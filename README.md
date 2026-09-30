@@ -36,10 +36,14 @@ references —
 
 The visible label stays exactly what you typed (`#1234`, `owner/repo#1234`,
 or `GH-1234`), only the underlying Markdown target changes, so the rendered
-comment looks identical but the link is now permanent. It always links to
-`/issues/N` — GitHub transparently redirects that to `/pull/N` if `N` turns
-out to be a pull request, so no extra lookup is needed to tell issues and PRs
-apart.
+comment looks identical but the link is now permanent. The generated target
+always uses GitHub's shared `/issues/N` entry point. It works for both resource
+types: an issue opens directly, while a pull request is redirected by GitHub to
+its canonical `/pull/N` URL. For example,
+`https://github.com/owner/repo/issues/1234` opens
+`https://github.com/owner/repo/pull/1234` when `#1234` is a pull request. This
+avoids a lookup because the text `#1234` alone does not identify its resource
+type.
 
 References inside fenced code blocks (` ``` `), inline code spans (`` ` ``),
 or already inside a Markdown link are left untouched, and an already-expanded

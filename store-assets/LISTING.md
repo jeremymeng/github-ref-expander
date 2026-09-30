@@ -40,6 +40,8 @@ limit for the short/summary description shown in search results.)
 > displaying as the short, readable `#1234` label. The link always
 > points at the exact repo the reference was written in, so it keeps
 > working even after a transfer or a copy-paste into a different repo.
+> This URL works for pull requests too: GitHub redirects `/issues/1234`
+> to the canonical `/pull/1234` URL when that number belongs to a PR.
 > `owner/repo#1234` cross-repo references are expanded using that
 > explicit owner/repo instead of the current page. References already
 > inside a Markdown link, inline code span, or fenced code block are
