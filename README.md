@@ -65,14 +65,43 @@ link is never re-converted.
 Toggle "Auto-expand while typing" from the extension's toolbar popup. The
 setting is stored with `chrome.storage.sync`.
 
-## Install (unpacked, for testing/review)
+## Install
 
-1. Open `chrome://extensions` (or `edge://extensions` on Edge).
-2. Turn on **Developer mode** (top-right toggle).
-3. Click **Load unpacked** and select this repository's folder.
-4. The "GitHub Ref Expander" icon appears in the toolbar.
+The ZIP files on the [GitHub Releases page](https://github.com/jeremymeng/github-ref-expander/releases)
+are **unsigned extension packages**. Install them manually using the steps
+below rather than opening the ZIP directly. No build step is needed.
+
+### Chrome / Edge
+
+1. Download `github-ref-expander-chrome-vX.Y.Z.zip` from a release and
+   **extract it** to a folder you will keep.
+2. Open `chrome://extensions` (or `edge://extensions` on Edge).
+3. Turn on **Developer mode** (top-right toggle).
+4. Click **Load unpacked** and select the extracted folder containing
+   `manifest.json`.
+
+The installation survives browser restarts. Keep the extracted folder in
+place because the browser loads the extension from it. To test from source
+instead, select this repository's folder in step 4.
 
 ### Firefox
+
+Requires **Firefox 140 or newer**.
+
+1. Download `github-ref-expander-firefox-vX.Y.Z.zip` from a release and
+   **extract it**.
+2. Open `about:debugging#/runtime/this-firefox`.
+3. Click **Load Temporary Add-on...** and select `manifest.json` in the
+   extracted folder (or in this repository to test from source).
+
+**Firefox removes temporary add-ons when it closes.** For a persistent
+installation in regular Firefox, the extension must be distributed as a
+Mozilla-signed `.xpi`, obtained through AMO signing for either a public
+listing or an unlisted distribution. Renaming the ZIP to `.xpi` does not
+bypass the signing requirement.
+
+After loading the extension in either browser, refresh any already-open
+GitHub tabs.
 
 The extension is written to be portable: it uses only `chrome.storage`
 (promise-based in Firefox and Chrome ≥ 88) behind a small `browser`/`chrome`
@@ -80,9 +109,7 @@ shim, and the content script uses no Chrome-only APIs. `manifest.json`
 already includes `browser_specific_settings.gecko` (an extension ID,
 minimum Firefox version, and a "no data collection" declaration), so the
 same manifest works unmodified in both browsers — no separate Firefox
-manifest or build step needed. To load it in Firefox for testing, open
-`about:debugging#/runtime/this-firefox` → **Load Temporary Add-on** →
-select `manifest.json`.
+manifest or build step needed.
 
 ## Manual test steps
 
